@@ -14,7 +14,7 @@ st.markdown("Analisis penggunaan sepeda berdasarkan cuaca, waktu, dan pola distr
 # =========================
 # LOAD DATA
 # =========================
-df = pd.read_csv('main_data.csv')
+df = pd.read_csv('dashboard/main_data.csv')
 
 # =========================
 # MAPPING
