@@ -128,5 +128,5 @@ Fitur dashboard meliputi:
 - Tampilan data dalam bentuk tabel (preview data)  
 
 
-URL: https://bike-sharing-dashboard-loistamnda.streamlit.app/
+URL: https://bike-sharing-dashboard-loistamnda1124.streamlit.app/
 ---
