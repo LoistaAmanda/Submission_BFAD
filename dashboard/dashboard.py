@@ -3,140 +3,146 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# =========================
-# CONFIG
-# =========================
-st.set_page_config(page_title="Bike Sharing Dashboard", layout="wide")
+st.set_page_config(page_title="Bike Sharing Dashboard ", layout="wide")
 
-st.title("Bike Sharing Dashboard")
-st.markdown("Analisis penggunaan sepeda berdasarkan cuaca, waktu, dan pola distribusi")
+st.title("Bike Sharing Analysis Dashboard (2011-2012)")
 
 # =========================
 # LOAD DATA
 # =========================
-df = pd.read_csv('dashboard/main_data.csv')
+df_day = pd.read_csv('dashboard/main_day_data.csv')
+df_hour = pd.read_csv('dashboard/main_hour_data.csv')
+
+# convert date
+df_day['dteday'] = pd.to_datetime(df_day['dteday'])
+df_hour['dteday'] = pd.to_datetime(df_hour['dteday'])
 
 # =========================
-# MAPPING
+# MAPPING CUACA
 # =========================
 weather_map = {
     1: "Cerah",
     2: "Berawan",
     3: "Hujan Ringan",
-    4: "Hujan Lebat"
 }
-df['weather'] = df['weathersit'].map(weather_map)
 
-weekday_map = {
-    0: "Minggu",
-    1: "Senin",
-    2: "Selasa",
-    3: "Rabu",
-    4: "Kamis",
-    5: "Jumat",
-    6: "Sabtu"
-}
-df['weekday_name'] = df['weekday'].map(weekday_map)
+df_day['weather'] = df_day['weathersit'].map(weather_map)
+df_hour['weather'] = df_hour['weathersit'].map(weather_map)
 
 # =========================
-# FILTER
+# SIDEBAR FILTER
 # =========================
 st.sidebar.header("Filter")
 
+# filter cuaca (untuk visualisasi 1)
 selected_weather = st.sidebar.multiselect(
-    "Pilih Cuaca",
-    options=df['weather'].dropna().unique(),
-    default=df['weather'].dropna().unique()
+    "Pilih Kondisi Cuaca",
+    options=df_day['weather'].dropna().unique(),
+    default=df_day['weather'].dropna().unique()
 )
 
-df_filtered = df[df['weather'].isin(selected_weather)]
+# filter tanggal (untuk visualisasi 2)
+selected_date = st.sidebar.date_input(
+    "Pilih Tanggal",
+    value=df_hour['dteday'].min(),
+    min_value=df_hour['dteday'].min(),
+    max_value=df_hour['dteday'].max()
+)
 
 # =========================
-# LAYOUT (2 KOLOM)
+# FILTER DATA
+# =========================
+df_day_filtered = df_day[df_day['weather'].isin(selected_weather)]
+df_hour_filtered = df_hour[df_hour['dteday'] == pd.to_datetime(selected_date)]
+
+st.subheader("Preview Data")
+
+if st.checkbox("Tampilkan Data"):
+    st.dataframe(df_hour_filtered.head(20))
+
+# =========================
+# LAYOUT
 # =========================
 col1, col2 = st.columns(2)
 
 # =========================
 # VISUALISASI 1 (CUACA)
 # =========================
-with col1:
-    st.subheader("Pengaruh Cuaca")
+weather_map = {
+    1:"Cerah", 
+    2:"Berawan", 
+    3:"Hujan Ringan"
+}
 
-    weather_group = df_filtered.groupby('weather')['cnt'].mean().reset_index()
+df_day['weather'] = df_day['weathersit'].map(weather_map)
 
-    fig1, ax1 = plt.subplots()
+df_day_filtered = df_day[df_day['weather'].isin(selected_weather)]
 
-    sns.barplot(
-        data=weather_group,
-        x='weather',
-        y='cnt',
-        palette='Purples',
-        ax=ax1
-    )
+weather_group = df_day_filtered.groupby('weather')['cnt'].mean().reset_index()
 
-    ax1.set_title("Rata-rata Penyewaan Berdasarkan Cuaca")
-    ax1.set_xlabel("Kondisi Cuaca")
-    ax1.set_ylabel("Rata-rata Penyewaan")
+fig, ax = plt.subplots(figsize=(8,5))
 
-    st.pyplot(fig1)
-
-# =========================
-# VISUALISASI 2 (HARI)
-# =========================
-with col2:
-    st.subheader("Penyewaan Berdasarkan Hari")
-
-    weekday_group = df_filtered.groupby('weekday_name')['cnt'].mean().reset_index()
-
-    order = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"]
-
-    weekday_group['weekday_name'] = pd.Categorical(
-        weekday_group['weekday_name'],
-        categories=order,
-        ordered=True
-    )
-
-    weekday_group = weekday_group.sort_values('weekday_name')
-
-    fig2, ax2 = plt.subplots()
-
-    sns.barplot(
-        data=weekday_group,
-        x='weekday_name',
-        y='cnt',
-        palette='Purples',
-        ax=ax2
-    )
-
-    ax2.set_title("Rata-rata Penyewaan per Hari")
-    ax2.set_xlabel("Hari")
-    ax2.set_ylabel("Rata-rata Penyewaan")
-
-    st.pyplot(fig2)
-
-# =========================
-# VISUALISASI 3 (DISTRIBUSI)
-# =========================
-st.subheader("Distribusi Penyewaan Sepeda")
-
-fig3, ax3 = plt.subplots()
-
-sns.histplot(
-    df_filtered['cnt'],
-    bins=30,
-    color='green',
-    ax=ax3
+sns.barplot(
+    data=weather_group,
+    x='weather',
+    y='cnt',
+    palette=['#E6E6FA','#CDB4DB','#9370DB','#4B0082'],
+    edgecolor='black',
+    ax=ax
 )
 
-ax3.set_title("Distribusi Jumlah Penyewaan")
-ax3.set_xlabel("Jumlah Penyewaan")
-ax3.set_ylabel("Frekuensi")
+ax.set_title("Rata-rata Penyewaan Sepeda Berdasarkan Kondisi Cuaca (2011–2012)")
+ax.set_xlabel("Kondisi Cuaca")
+ax.set_ylabel("Rata-rata Penyewaan")
+ax.grid(axis='y', linestyle='--', alpha=0.3)
 
-st.pyplot(fig3)
+plt.tight_layout()
+
+st.pyplot(fig)
 
 # =========================
-# DATA TABLE
+# VISUALISASI 2 (JAM)
 # =========================
-st.subheader("Data Preview")
-st.dataframe(df_filtered.head())
+df_hour_filtered = df_hour[
+    df_hour['dteday'] == pd.to_datetime(selected_date)
+]
 
+hour_group = df_hour_filtered.groupby('hr')['cnt'].mean().reset_index()
+
+fig, ax = plt.subplots(figsize=(10,5))
+
+sns.lineplot(
+    data=hour_group,
+    x='hr',
+    y='cnt',
+    color='#006400',
+    linewidth=2.5,
+    ax=ax
+)
+
+ax.fill_between(
+    hour_group['hr'],
+    hour_group['cnt'],
+    color='#90EE90',
+    alpha=0.3
+)
+
+ax.set_title("Pola Penyewaan Sepeda Berdasarkan Jam (2011–2012)")
+ax.set_xlabel("Jam")
+ax.set_ylabel("Rata-rata Penyewaan")
+ax.set_xticks(range(0,24))
+ax.grid(True, linestyle='--', alpha=0.3)
+
+plt.tight_layout()
+
+st.pyplot(fig)
+
+# =========================
+# INSIGHT DASHBOARD
+# =========================
+st.markdown("""
+## insight
+1. Cuaca yang cerah memiliki jumlah rata-rata penyewaan sepeda tertinggi 
+2. Pada waktu sibuk seperti pagi dan sore hari, penggunaan sepeda mengalami peningkatan yang signifikan 
+3. Sepeda cenderung digunakan sebagai mobilitas harian 
+""")
